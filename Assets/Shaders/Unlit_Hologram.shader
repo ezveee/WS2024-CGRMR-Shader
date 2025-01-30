@@ -3,23 +3,18 @@ Shader "Custom/Hologram"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _SpecIntensity ("Spec Intensity" , Range(0, 50)) = 1
-        _SpecPower ("Spec Power" , Range(1, 50)) = 1
-        _LightColor ("Light Color", Color) = (1, 1, 1, 1) // white light as default
-        _LightPosition ("Light Position", Vector) = (0, 5, 0, 0) // Default light position
-        _RimColor("Rim Color", Color) = (1,0,0,1)
-        _RimPower("Rim Power", Range(0.5, 10)) = 3.0
-        _RimIntensity("Rim Intensity", Range(0.25,25)) = 1.0
-        _StencilRef("Stencil Ref", Range(0, 10)) = 1
+        _LightColor ("Light Color", Color) = (1, 1, 1, 1)
+        _LightPosition ("Light Position", Vector) = (0, 10, 0, 0)
+        _RimColor("Rim Color", Color) = (0,1,1,1)
+        _RimPower("Rim Power", Range(0.5, 10)) = 5.0
+        _RimIntensity("Rim Intensity", Range(0.25,25)) = 20
+        [IntRange] _StencilRef("Stencil Ref", Range(0, 10)) = 1
     }
     SubShader
     {
-        Tags { "RenderType"="Transparent" "Queue" = "Transparent"}
+        Tags { "RenderType" = "Transparent" "Queue" = "Transparent"}
 
         Blend SrcAlpha OneMinusSrcAlpha
-        
-        //Cull Off
-
         ZTest Always
 
         Pass
@@ -29,11 +24,11 @@ Shader "Custom/Hologram"
                 Ref [_StencilRef]
                 Comp Equal
             }
-           CGPROGRAM
+            
+            CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
             
-
             #include "UnityCG.cginc"
 
             struct appdata
@@ -66,11 +61,9 @@ Shader "Custom/Hologram"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                // sample the texture
                 float rim = 1 - saturate(dot(i.viewDir, i.normal));
                 half4 col = _RimColor * pow(rim,_RimPower) * _RimIntensity;
-                col.a = pow(rim,_RimPower); //THis somehow ruins it
-
+                col.a = pow(rim,_RimPower);
                 return col;
             }
             ENDCG
