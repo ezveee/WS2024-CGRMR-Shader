@@ -3,27 +3,28 @@ Shader "Custom/BumpMap"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
+        _LightColor ("Light Color", Color) = (1, 1, 1, 1)
+        _LightPosition ("Light Position", Vector) = (0, 10, 0, 0)
         _NormalMap ("Normal", 2D) = "white" {}
-        _NormalIntensity ("Intensity", Range(0,5)) = 1
-        _SpecIntensity ("Spec Intensity" , Range(0, 50)) = 1
-        _SpecPower ("Spec Power" , Range(1, 50)) = 1
-        _LightColor ("Light Color", Color) = (1, 1, 1, 1) // white light as default
-        _LightPosition ("Light Position", Vector) = (0, 5, 0, 0) // Default light position
-        _StencilRef("Stencil Ref", Range(0, 10)) = 1 
+        _NormalIntensity ("Intensity", Range(0, 10)) = 1
+        [IntRange] _StencilID("Stencil ID", Range(0, 10)) = 1 // if i remove this line, you can only see the walls through the "windows"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags
+        {
+            "RenderType" = "Opaque"
+        }
 
         Pass
         {
             Stencil
             {
-                Ref [_StencilRef]
+                Ref [_StencilID]
                 Comp NotEqual
                 Pass Keep
-            //Makes brickwall see through with stencil!!!
             }
+            
             CGPROGRAM
             #pragma vertex vert
             #pragma fragment frag
@@ -40,12 +41,12 @@ Shader "Custom/BumpMap"
 
             struct v2f
             {
-                float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
+                float2 uv : TEXCOORD0;
                 float3 normal : TEXCOORD1;
                 float3 tangent : TEXCOORD2;
                 float3 bitangent : TEXCOORD3;
-                float3 viewDir : TEXCOORD4; // View direction for lighting calculations
+                float3 viewDir : TEXCOORD4;
             };
 
             sampler2D _MainTex;
@@ -55,13 +56,8 @@ Shader "Custom/BumpMap"
             float4 _NormalMap_ST;
 
             float _NormalIntensity;
-            float _SpecIntensity;
-            float _SpecPower;
-
-            float4 _LightColor; // color of light in rgb
-            float4 _LightPosition; // set position of light
-
-            float _StencilRef;
+            float4 _LightColor;
+            float4 _LightPosition;
 
             v2f vert (appdata v)
             {
@@ -71,42 +67,32 @@ Shader "Custom/BumpMap"
                 o.normal = UnityObjectToWorldNormal(v.normal);
                 o.tangent = UnityObjectToWorldDir(v.tangent);
                 o.bitangent = cross(o.tangent, o.normal); 
-
-                // Compute view direction (camera space)
                 o.viewDir = normalize(WorldSpaceViewDir(v.vertex));
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                float normalIntensity = _NormalIntensity/30;
-                // sample the texture
+                float normalIntensity = _NormalIntensity / 30;
+                
                 fixed4 col = tex2D(_MainTex, i.uv);
                 float3 normals = i.normal;
 
                 float3 normalMap = UnpackNormal(tex2D(_NormalMap, i.uv));
                 normals = normalMap.r * i.tangent * normalIntensity + 
                           normalMap.g * i.bitangent * normalIntensity + 
-                          normalMap.b * i.normal; //Intensity wouldnt change anything if applied to all 3
+                          normalMap.b * i.normal;
                 normals = normalize(normals);
-                
-                float3 lightDir = normalize(_LightPosition.xyz - i.vertex.xyz); // calc direction of light
 
-                //Phong
-                float3 reflex = reflect(lightDir, normals);
-                float3 phongSpec = pow(max(0, dot(reflex, -i.viewDir)), _SpecPower) * _SpecIntensity; //reflection * viewdirection ^ shiny factor (with adapted intensity)
+                float3 lightDir = normalize(_LightPosition.xyz - i.vertex.xyz);
+                float ambient = 0.2;
+                float3 diffuse = max(0.0, dot(normals, lightDir)) + ambient;
+                diffuse = saturate(diffuse);
 
-                //Blinn
-                float3 h = normalize(lightDir + i.viewDir); //h vector, normal of view dir and light dir
-                float3 blinnSpec = pow(max(0, dot(normals, h)), _SpecPower) * _SpecIntensity; //normal * (normal to view and light dir) ^shiny factor (with adapted intensity)
-                
-                //Lambert
-                float3 diffuse = max(0.0, dot(normals, lightDir)); // calculate diffuse lighting (can only be positive!!!)
-                
-                float3 finalLighting = (phongSpec + blinnSpec + diffuse) * _LightColor; //Apply light color instead of unity _LightColor0
-                
+                float3 finalLighting = diffuse * _LightColor;
                 float3 finalColor = col * finalLighting;
-                return fixed4(finalColor,1);
+                
+                return fixed4(finalColor, 1);
             }
             ENDCG
         }
