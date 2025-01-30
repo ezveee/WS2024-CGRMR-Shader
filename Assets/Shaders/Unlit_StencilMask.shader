@@ -2,22 +2,23 @@ Shader "Custom/StencilMask"
 {
     Properties
     {
-        _StencilRef("Stencil Ref", Range(0, 10)) = 1 
+        [IntRange] _StencilID("Stencil ID", Range(0, 10)) = 1 
     }
+    
     SubShader
     {
-        Tags { "RenderType"="Opaque" "Queue" = "Geometry -1" /*Start shader early in rendering phase*/ }
+        Tags { "RenderType" = "Opaque" "Queue" = "Geometry-1" }
 
         Pass
         {
-            ColorMask 0 //Dont write any colot to screen
-            ZWrite Off //Dont write depth information
+            ColorMask 0
+            ZWrite Off
 
             Stencil
             {
-                Ref [_StencilRef]
-                Comp Always //Every pixel is accepted
-                Pass Replace //Value 1 written in stencil buffer for every pixel of object (use with other stencil shaders)
+                Ref [_StencilID]
+                Comp Always
+                Pass Replace
             }
 
             CGPROGRAM
@@ -38,8 +39,7 @@ Shader "Custom/StencilMask"
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
-
-            float _StencilRef;
+            float _StencilID;
 
             v2f vert (appdata v)
             {
@@ -50,13 +50,8 @@ Shader "Custom/StencilMask"
 
             fixed4 frag (v2f i) : SV_Target
             {
-                return fixed4(0,0,0,0); //returns color 0
+                return fixed4(0,0,0,0);
             }
-            /*Stencil {
-                    Ref 1
-                    Comp Equal
-                } dann sieht man was durch DIESES window
-                */
             ENDCG
         }
     }

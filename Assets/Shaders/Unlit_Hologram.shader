@@ -5,10 +5,10 @@ Shader "Custom/Hologram"
         _MainTex ("Texture", 2D) = "white" {}
         _LightColor ("Light Color", Color) = (1, 1, 1, 1)
         _LightPosition ("Light Position", Vector) = (0, 10, 0, 0)
-        _RimColor("Rim Color", Color) = (0,1,1,1)
+        _RimColor("Rim Color", Color) = (0, 1, 1, 1)
         _RimPower("Rim Power", Range(0.5, 10)) = 5.0
-        _RimIntensity("Rim Intensity", Range(0.25,25)) = 20
-        [IntRange] _StencilRef("Stencil Ref", Range(0, 10)) = 1
+        _RimIntensity("Rim Intensity", Range(0.25, 25)) = 20
+        [IntRange] _StencilID("Stencil ID", Range(0, 10)) = 1
     }
     SubShader
     {
@@ -21,7 +21,7 @@ Shader "Custom/Hologram"
         {
             Stencil
             {
-                Ref [_StencilRef]
+                Ref [_StencilID]
                 Comp Equal
             }
             
